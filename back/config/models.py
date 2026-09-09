@@ -1,13 +1,13 @@
 from sqlalchemy import ForeignKey, Table, Column, Integer, String
 from sqlalchemy.orm import relationship
-from database import Base
+from .database import Base
 
 
 game_room_players = Table("game_room_players", Base.metadata, Column("game_room_id", ForeignKey("gamerooms.id"), primary_key = True), Column("player_id", ForeignKey("players.id"), primary_key = True))
 
 
 class Player(Base):
-    __tablename = "players"
+    __tablename__ = "players"
     id = Column(String, primary_key=True)
     name = Column(String, unique=True)
     game_rooms = relationship(
@@ -17,7 +17,7 @@ class Player(Base):
     )
 
 class GameRoom(Base):
-    __tablename = "gamerooms"
+    __tablename__ = "gamerooms"
     id = Column(String, primary_key=True)
     members = relationship(
         "Player",
