@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from config.database import Base, engine
 from sqlalchemy import text
 from contextlib import asynccontextmanager
+from routes.auth import router as auth_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(auth_router)
 
 @app.get("/")
 def Home():
