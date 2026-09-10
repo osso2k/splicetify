@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { account } from "./utils/appwrite"
 import type { Models } from "appwrite"
 import { OAuthProvider } from "appwrite"
-
+import api from '../api.ts'
 
 const App = () => {
   const [user,setUser] = useState<Models.User<Models.Preferences> | null>(null)
@@ -30,9 +30,14 @@ const App = () => {
       console.log((error as Error).message)
     }
   }
-  // const connectSpotify = async ()=>{
-
-  // }
+  const connectSpotify = async ()=>{
+      try {
+        const response = await api.get("/spotify/connect")
+        window.location.href = response.data.url  
+      } catch (error) {
+        console.log((error as Error).message)
+      }
+  }
   return (
     <div className="w-full min-h-screen flex flex-col bg-[hsl(0,0%,8%)] text-white">
       <div className="mx-auto mt-12">
@@ -44,7 +49,7 @@ const App = () => {
           <p>{user.$id}</p>
         </div> : <h1> Still not logged in</h1>}
 
-        <button className="mt-12 border rounded px-6 py-3 cursor-pointer">connect spotify</button>
+        <button onClick={connectSpotify} disabled={!user} className="mt-12 border rounded px-6 py-3 cursor-pointer disabled:cursor-not-allowed">connect spotify</button>
       </div>
       </div>
   )

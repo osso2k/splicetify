@@ -4,4 +4,8 @@ from controllers.auth_controllers import connect_spotify
 router = APIRouter()
 @router.get("/spotify/connect")
 def spotify_connect():
-    connect_spotify()
+    return connect_spotify()
+
+@router.get("/spotify/connected")
+def spotify_connected(code:str):
+    return f"Connected !!!!!, {code}"
