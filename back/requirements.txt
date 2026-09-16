@@ -2,3 +2,5 @@ fastapi
 sqlalchemy
 uvicorn
 python-dotenv
+requests
+pwdlib

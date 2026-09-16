@@ -1,6 +1,14 @@
+import base64
+from uuid import uuid4
 from dotenv import load_dotenv
 from urllib.parse import urlencode
 import os
+import requests
+
+AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
+TOKEN_URL = "https://accounts.spotify.com/api/token"
+API_BASE = "https://api.spotify.com/v1" 
+
 load_dotenv()
 scopes = [
     "user-read-private",
@@ -8,11 +16,35 @@ scopes = [
     "playlist-read-private",
     "playlist-read-collaborative"
 ]
-def get_spotify_auth_url():
+def _client_credentials_header() -> str:
+    raw = f"{os.getenv('CLIENT_ID')}:{os.getenv('CLIENT_SECRET')}"
+    return "Basic " + base64.b64encode(raw.encode()).decode()
+
+
+def get_spotify_auth_url(state: str | None = None):
+    state = state or uuid4().hex
     params = {
         "client_id": os.getenv("CLIENT_ID"),
         "response_type": "code",
         "redirect_uri": os.getenv("SPOTIFY_REDIRECT_URI"),
-        "scope": " ".join(scopes)
+        "scope": " ".join(scopes),
+        "state": state
     }
-    return "https://accounts.spotify.com/authorize?" + urlencode(params) 
+    return AUTHORIZE_URL+ "?" + urlencode(params) , state
+
+
+def handle_code(code: str) -> dict:
+    response = requests.post(
+        TOKEN_URL,
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": os.getenv("SPOTIFY_REDIRECT_URI"),
+        },
+        headers={
+            "Authorization": _client_credentials_header(),
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+    )
+    response.raise_for_status()
+    return response.json()

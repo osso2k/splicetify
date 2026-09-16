@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 class PlayerCreate(BaseModel):
     name: str
@@ -8,3 +8,11 @@ class IngestRequest(BaseModel):
 class SongPicker(BaseModel):
     song_name: str
     artist: str
+
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+class LoginRequest(BaseModel):
+    email: str
+    password: str

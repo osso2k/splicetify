@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.database import Base, engine
 from sqlalchemy import text
 from contextlib import asynccontextmanager
-from routes.auth import router as auth_router
+from routes.spotify import router as auth_router
 from dotenv import load_dotenv
 import os
 
