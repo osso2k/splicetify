@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from urllib.parse import urlencode
 import os
 import requests
+from models.models import Player, SpotifyConnection
+# from sqlalchemy.orm import Session
 
 AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -48,3 +50,14 @@ def handle_code(code: str) -> dict:
     )
     response.raise_for_status()
     return response.json()
+
+def spotify_get(endpoint, access_token):
+    response = requests.get(f"{API_BASE}{endpoint}", headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    response.raise_for_status()
+    return response.json()
+
+def get_user_playlist():
+    token = SpotifyConnection(Player)
+    return spotify_get("/me/playlists", access_token=token.access_token)
