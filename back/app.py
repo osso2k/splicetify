@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.database import Base, engine
 from sqlalchemy import text
 from contextlib import asynccontextmanager
-from routes.spotify import router as auth_router
+from routes.spotify import auth_router, app_router
 from dotenv import load_dotenv
 import os
 
@@ -33,11 +33,8 @@ app.add_middleware(
     )
 
 app.include_router(auth_router)
+app.include_router(app_router)
 
 @app.get("/")
 def Home():
     return "YOOOO WAZZAAAAP KDOT"
-
-
-def get_song_url(song_name, song_artist):
-    pass

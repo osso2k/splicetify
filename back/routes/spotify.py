@@ -1,40 +1,43 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
+from services.spotify import get_user_playlist
 from config.database import get_db
 from config.schemas import SignupRequest, LoginRequest
-
 from fastapi import APIRouter
-from services.spotify import handle_code
 from controllers.spotify import connect_spotify, store_access_token
-from controllers.auth import signup_controller
+from controllers.auth import login_controller, signup_controller
+from middleware.auth_middleware import validate_user
 
+auth_router = APIRouter()
+app_router = APIRouter(
+    dependencies = [Depends(validate_user)]
+)
 
-router = APIRouter()
-
-
-@router.post("/auth/signup")
+@auth_router.post("/auth/signup")
 def signup(data: SignupRequest, db: Session = Depends(get_db)):
     return signup_controller(data, db)
 
 
-@router.post("/auth/login")
+@auth_router.post("/auth/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    return login(data, db)
+    return login_controller(data, db)
 
 
-@router.get("/spotify/connect")
+@app_router.get("/")
+def test():
+    return {"message": "you can see"}
+@app_router.get("/spotify/connect")
 def spotify_connect():
     return connect_spotify()
 
-@router.get("/spotify/connected")
+@app_router.get("/spotify/connected")
 async def spotify_connected(code:str):
     return store_access_token(code)
 
-@router.get("/spotify/connected/getplaylists")
-def get_playlists():
-    pass
+@app_router.get("/spotify/connected/getplaylists")
+def get_playlists(userId = Depends(validate_user), db: Session = Depends(get_db)):
+    return get_user_playlist(userId, db)
 
-@router.get("/spotify/getrandomsong")
+@app_router.get("/spotify/getrandomsong")
 def get_random_song():
     pass

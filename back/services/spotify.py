@@ -1,11 +1,15 @@
+from calendar import c
+import os
 import base64
+import requests
 from uuid import uuid4
 from dotenv import load_dotenv
 from urllib.parse import urlencode
-import os
-import requests
-from models.models import Player, SpotifyConnection
-# from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException
+from sqlalchemy.orm import Session
+from models.models import SpotifyConnection
+from config.database import get_db
+from middleware.auth_middleware import validate_user
 
 AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -58,6 +62,11 @@ def spotify_get(endpoint, access_token):
     response.raise_for_status()
     return response.json()
 
-def get_user_playlist():
-    token = SpotifyConnection(Player)
-    return spotify_get("/me/playlists", access_token=token.access_token)
+def get_user_playlist(userId = Depends(validate_user), db: Session = Depends(get_db)):
+    connection = (db.query(SpotifyConnection).filter(SpotifyConnection.user_id == userId).first())
+
+    if connection is None:
+        raise HTTPException(404, "Spotify User Connection missing")
+
+
+    return spotify_get("/me/playlists", access_token= connection.access_token)
