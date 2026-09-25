@@ -16,4 +16,4 @@ class SongPicker(BaseModel):
     artist: str
 
 class GoogleSignIn(BaseModel):
-    appwriteToken: str
+    appwrite_token: str

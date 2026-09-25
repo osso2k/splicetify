@@ -37,7 +37,7 @@ def spotify_connect():
 async def spotify_connected(code:str):
     return store_access_token(code)
 
-@app_router.get("/spotify/connected/getplaylists")
+@app_router.get("/spotify/getplaylists")
 def get_playlists(userId = Depends(validate_user), db: Session = Depends(get_db)):
     return get_user_playlist(userId, db)
 

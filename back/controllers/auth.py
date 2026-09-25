@@ -48,20 +48,17 @@ def google_signin_controller(data: GoogleSignIn, db:Session):
     client = Client()
     client.set_endpoint(os.getenv("APPWRITE_ENDPOINT"))
     client.set_project(os.getenv("APPWRITE_PROJECT_ID"))
-    client.set_jwt(data.appwriteToken)
+    client.set_jwt(data.appwrite_token)
 
     account = Account(client)
 
     try:
         user = account.get()
 
-        player = (db.query(Player).filter(Player.appwrite_id == user["$id"]).first())
+        player = (db.query(Player).filter(Player.appwrite_id == user.id).first())
 
         if player is None:
-            email = user["email"]
-            username = user["name"]
-            appwrite_id = user["id"]
-            player = Player(email= email, username = username, password_hash = None, appwrite_id = appwrite_id)
+            player = Player(email= user.email, username = user.name, password_hash = None, appwrite_id = user.id)
 
             db.add(player)
             db.commit()
@@ -69,5 +66,9 @@ def google_signin_controller(data: GoogleSignIn, db:Session):
         
         token = create_token(player.id)
         return {"access_token": token, "token_type": "Bearer"}
-    except Exception:
-        raise HTTPException(401, "Invalid Google Signin authentication")
+    except Exception as e:
+        print("GOOGLE SIGNIN ERROR:", repr(e))
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Google Signin authentication"
+        )

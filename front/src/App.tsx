@@ -8,6 +8,7 @@ import Header from "./components/Header.tsx"
 
 const App = () => {
   const [user,setUser] = useState<Models.User<Models.Preferences> | null>(null)
+  const [playlists, setPlaylists] = useState<String[] |  null >(null)
 
   useEffect(()=>{
       const checkAuth = async ()=>{
@@ -38,9 +39,35 @@ const App = () => {
         console.log((error as Error).message)
       }
   }
+  const getUserPlaylists = async ()=>{
+      try {
+        const response = await api.get("/spotify/playlists")
+        setPlaylists(response.data)
+      } catch (error) {
+        console.log((error as Error).message)
+      }
+  }
   return (
-    <div className="w-full min-h-screen flex flex-col bg-linear-to-r from-blue-600 to-indigo-600 text-white">
+    <div className="w-full min-h-screen flex flex-col bg-[hsl(0,0%,12%)] text-white items-center text-4xl">
+      <div>
+        <h1>user info</h1>
+        <p>-----------------------</p>
+          {user ? <div>
+            <p>{user.$id}</p>
+            <p>{user.name}</p>
+            <p>{user.email}</p>
+          </div> : <p> User not signed in</p>}
+      </div>
       <Header />
+      <p className="cursor-pointer" onClick={handleGoogleSignin}>google login</p>
+      <p className="cursor-pointer" onClick={connectSpotify}>spotify connect</p>
+      <p className="cursor-pointer" onClick={getUserPlaylists}>get playlists</p>
+
+      <div>
+        <h1>Playlists</h1>
+        <p>----------------</p>
+        <p>{playlists}</p>
+      </div>
 
     </div>
   )

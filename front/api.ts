@@ -1,9 +1,25 @@
 import axios from "axios"
 
-// const token = localStorage.getItem("token")
 const api = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
+    
 })
 
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token")
+    if (token){
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+})
+
+api.interceptors.response.use((response) => {
+    return response
+}, async  (error) => {
+    if (error.response?.status == 401){
+        localStorage.removeItem("token")
+        return window.location.href = "/login"
+    }
+})
 
 export default api
