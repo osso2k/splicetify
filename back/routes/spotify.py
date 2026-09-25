@@ -2,26 +2,29 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from services.spotify import get_user_playlist
 from config.database import get_db
-from config.schemas import SignupRequest, LoginRequest
+from config.schemas import GoogleSignIn, SignupRequest, LoginRequest
 from fastapi import APIRouter
 from controllers.spotify import connect_spotify, store_access_token
-from controllers.auth import login_controller, signup_controller
+from controllers.auth import google_signin_controller, login_controller, signup_controller
 from middleware.auth_middleware import validate_user
 
-auth_router = APIRouter()
+auth_router = APIRouter(prefix="/auth")
 app_router = APIRouter(
     dependencies = [Depends(validate_user)]
 )
 
-@auth_router.post("/auth/signup")
+@auth_router.post("/signup")
 def signup(data: SignupRequest, db: Session = Depends(get_db)):
     return signup_controller(data, db)
 
 
-@auth_router.post("/auth/login")
+@auth_router.post("/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     return login_controller(data, db)
 
+@auth_router.post("/googlesignin")
+def google_signin(data: GoogleSignIn, db: Session = Depends(get_db)):
+    return google_signin_controller(data, db)
 
 @app_router.get("/")
 def test():

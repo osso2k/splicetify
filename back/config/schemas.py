@@ -14,3 +14,6 @@ class IngestRequest(BaseModel):
 class SongPicker(BaseModel):
     song_name: str
     artist: str
+
+class GoogleSignIn(BaseModel):
+    appwriteToken: str

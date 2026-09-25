@@ -12,7 +12,9 @@ class Player(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String)
     email = Column(String, unique=True)
-    password_hash = Column(String)
+    password_hash = Column(String, nullable=True)
+    appwrite_id = Column(String, unique=True, nullable=True)
+
     game_rooms = relationship(
         "GameRoom",
         secondary= game_room_players,
