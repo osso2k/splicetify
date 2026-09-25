@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from services.spotify import get_user_playlist
 from config.database import get_db
@@ -29,13 +30,15 @@ def google_signin(data: GoogleSignIn, db: Session = Depends(get_db)):
 @app_router.get("/")
 def test():
     return {"message": "you can see"}
+
 @app_router.get("/spotify/connect")
-def spotify_connect():
-    return connect_spotify()
+def spotify_connect(userId = Depends(validate_user), db:Session = Depends(get_db)):
+    return connect_spotify(userId, db)
 
 @app_router.get("/spotify/connected")
-async def spotify_connected(code:str):
-    return store_access_token(code)
+async def spotify_connected(code:str, state, db: Session = Depends(get_db)):
+    store_access_token(code, state, db)
+    return RedirectResponse(url="http://localhost:5173")
 
 @app_router.get("/spotify/getplaylists")
 def get_playlists(userId = Depends(validate_user), db: Session = Depends(get_db)):

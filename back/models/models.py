@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy import DateTime, ForeignKey, Table, Column, Integer, String
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import relationship
 from config.database import Base
 
 
@@ -50,3 +50,9 @@ class GameRoom(Base):
         secondary= game_room_players,
         back_populates= "game_rooms"
     )
+class SpotifyOAuthState(Base):
+    __tablename__ = "spotify_oauth_states"
+
+    state = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("players.id"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
