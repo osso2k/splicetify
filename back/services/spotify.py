@@ -52,6 +52,11 @@ def handle_code(code: str) -> dict:
             "Content-Type": "application/x-www-form-urlencoded",
         },
     )
+    if not response.ok:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Spotify token exchange failed ({response.status_code}): {response.text}",
+        )
     response.raise_for_status()
     return response.json()
 

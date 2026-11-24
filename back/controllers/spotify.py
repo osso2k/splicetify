@@ -1,5 +1,4 @@
 from datetime import datetime, timezone, timedelta
-from re import L
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from services.spotify import get_spotify_auth_url, handle_code, spotify_get

@@ -14,6 +14,13 @@ app_router = APIRouter(
     dependencies = [Depends(validate_user)]
 )
 
+public_router = APIRouter()
+
+@public_router.get("/spotify/connected")
+def spotify_connected(code: str, state: str, db: Session = Depends(get_db)):
+    store_access_token(code, state, db)
+    return RedirectResponse(url="http://localhost:5173")
+
 @auth_router.post("/signup")
 def signup(data: SignupRequest, db: Session = Depends(get_db)):
     return signup_controller(data, db)
@@ -35,10 +42,10 @@ def test():
 def spotify_connect(userId = Depends(validate_user), db:Session = Depends(get_db)):
     return connect_spotify(userId, db)
 
-@app_router.get("/spotify/connected")
-async def spotify_connected(code:str, state, db: Session = Depends(get_db)):
-    store_access_token(code, state, db)
-    return RedirectResponse(url="http://localhost:5173")
+# @app_router.get("/spotify/connected")
+# async def spotify_connected(code:str, state, db: Session = Depends(get_db)):
+#     store_access_token(code, state, db)
+#     return RedirectResponse(url="http://localhost:5173")
 
 @app_router.get("/spotify/getplaylists")
 def get_playlists(userId = Depends(validate_user), db: Session = Depends(get_db)):
