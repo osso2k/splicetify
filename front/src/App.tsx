@@ -11,7 +11,7 @@ export type Playlist = {
   name: string
   tracks?: { total: number }
   images?: { url: string }[]
-  owner?: { display_name: string }
+  owner?: { display_name: string } | null
 }
 
 function getErrorMessage(error: unknown) {
@@ -27,26 +27,109 @@ function getErrorMessage(error: unknown) {
 const App = () => {
   const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [pinnedPlaylists, setPinnedPlaylists] = useState<Playlist[]>([])
   const [spotifyConnected, setSpotifyConnected] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [playlistLoading, setPlaylistLoading] = useState(false)
+  const [playlistRefreshing, setPlaylistRefreshing] = useState(false)
+  const [loadingMorePlaylists, setLoadingMorePlaylists] = useState(false)
+  const [playlistOffset, setPlaylistOffset] = useState(0)
+  const [playlistTotal, setPlaylistTotal] = useState(0)
+  const [hasMorePlaylists, setHasMorePlaylists] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState("")
 
-  const loadPlaylists = useCallback(async () => {
-    setPlaylistLoading(true)
-    setError("")
+  const loadPlaylists = useCallback(async (refresh = false) => {
+    if (refresh) setPlaylistRefreshing(true)
+    else setPlaylistLoading(true)
     try {
-      const response = await api.get("/spotify/getplaylists")
-      setPlaylists(response.data.items ?? [])
+      const [playlistResponse, pinnedResponse] = await Promise.all([
+        api.get("/spotify/getplaylists", { params: { limit: 50, offset: 0 } }),
+        api.get("/spotify/pinned-playlists"),
+      ])
+      const page = playlistResponse.data
+      setPlaylists(page.items ?? [])
+      setPlaylistOffset((page.offset ?? 0) + (page.items?.length ?? 0))
+      setPlaylistTotal(page.total ?? 0)
+      setHasMorePlaylists(Boolean(page.next))
+      setPinnedPlaylists(pinnedResponse.data.items ?? [])
       setSpotifyConnected(true)
+      setError("")
     } catch (requestError) {
-      setSpotifyConnected(false)
-      if (!(isAxiosError(requestError) && requestError.response?.status === 404)) {
+      if (isAxiosError(requestError) && requestError.response?.status === 404) {
+        setSpotifyConnected(false)
+      } else {
         setError(getErrorMessage(requestError))
       }
     } finally {
-      setPlaylistLoading(false)
+      if (refresh) setPlaylistRefreshing(false)
+      else setPlaylistLoading(false)
+    }
+  }, [])
+
+  const loadMorePlaylists = useCallback(async () => {
+    if (!hasMorePlaylists || loadingMorePlaylists) return
+    setLoadingMorePlaylists(true)
+    try {
+      const response = await api.get("/spotify/getplaylists", {
+        params: { limit: 50, offset: playlistOffset },
+      })
+      const page = response.data
+      setPlaylists((current) => {
+        const knownIds = new Set(current.map((playlist) => playlist.id))
+        return [...current, ...(page.items ?? []).filter((playlist: Playlist) => !knownIds.has(playlist.id))]
+      })
+      setPlaylistOffset((page.offset ?? playlistOffset) + (page.items?.length ?? 0))
+      setPlaylistTotal(page.total ?? playlistTotal)
+      setHasMorePlaylists(Boolean(page.next))
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    } finally {
+      setLoadingMorePlaylists(false)
+    }
+  }, [hasMorePlaylists, loadingMorePlaylists, playlistOffset, playlistTotal])
+
+  const togglePinnedPlaylist = useCallback(async (playlist: Playlist) => {
+    const alreadyPinned = pinnedPlaylists.some((item) => item.id === playlist.id)
+    if (!alreadyPinned && pinnedPlaylists.length >= 4) {
+      setError("You can pin four quick picks. Unpin one to make room.")
+      return
+    }
+
+    const next = alreadyPinned
+      ? pinnedPlaylists.filter((item) => item.id !== playlist.id)
+      : [...pinnedPlaylists, playlist]
+    try {
+      const response = await api.put("/spotify/pinned-playlists", {
+        items: next.map((item) => ({
+          id: item.id,
+          name: item.name,
+          image_url: item.images?.[0]?.url ?? null,
+          track_count: item.tracks?.total ?? 0,
+          owner_name: item.owner?.display_name ?? null,
+        })),
+      })
+      setPinnedPlaylists(response.data.items ?? [])
+      setError("")
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    }
+  }, [pinnedPlaylists])
+
+  const refreshPlaylists = useCallback(() => {
+    void loadPlaylists(true)
+  }, [loadPlaylists])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const spotifyError = params.get("spotify_error")
+    if (spotifyError) setError(spotifyError)
+    if (spotifyError || params.has("spotify")) {
+      params.delete("spotify_error")
+      params.delete("spotify")
+      const query = params.toString()
+      const cleanUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
+      window.history.replaceState({}, document.title, cleanUrl)
     }
   }, [])
 
@@ -98,6 +181,7 @@ const App = () => {
     localStorage.removeItem("userId")
     setUser(null)
     setPlaylists([])
+    setPinnedPlaylists([])
     setSpotifyConnected(false)
     setError("")
   }
@@ -126,12 +210,19 @@ const App = () => {
         <Homepage
           user={user}
           playlists={playlists}
+          pinnedPlaylists={pinnedPlaylists}
           spotifyConnected={spotifyConnected}
           playlistLoading={playlistLoading}
+          playlistRefreshing={playlistRefreshing}
+          loadingMorePlaylists={loadingMorePlaylists}
+          hasMorePlaylists={hasMorePlaylists}
+          playlistTotal={playlistTotal}
           connecting={connecting}
           onSignIn={signIn}
           onConnectSpotify={connectSpotify}
-          onRefreshPlaylists={loadPlaylists}
+          onRefreshPlaylists={refreshPlaylists}
+          onLoadMorePlaylists={loadMorePlaylists}
+          onTogglePinnedPlaylist={togglePinnedPlaylist}
           error={error}
         />
       </main>

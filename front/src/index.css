@@ -266,3 +266,46 @@ body { background: var(--paper); }
 @media (max-width: 640px) {
   .hero h1 { font-size: clamp(45px, 11.5vw, 58px); }
 }
+
+.quick-picks-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 3px 0 13px; }
+.quick-picks-heading h3 { margin: 0 0 3px; color: #e5e9dc; font-size: 13px; letter-spacing: -.02em; }
+.quick-picks-heading p { margin: 0; color: #a6ad9e; font-size: 10px; }
+.quick-picks-heading > span { padding-bottom: 2px; color: #c3cead; font-size: 8px; font-weight: 800; letter-spacing: .13em; }
+.quick-picks-empty { display: flex; align-items: center; gap: 12px; min-height: 70px; padding: 15px 17px; border-radius: 5px; background: #20261f; }
+.quick-picks-empty > span { color: var(--lime); font-size: 18px; }
+.quick-picks-empty p { margin: 0; color: #b7beaf; font-size: 11px; }
+.playlist-pin { position: absolute; z-index: 2; top: 16px; right: 16px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; color: #eef0e5; background: #101510c9; font-size: 17px; line-height: 1; cursor: pointer; transition: color .18s ease, background .18s ease, transform .18s ease; }
+.playlist-pin:hover:not(:disabled) { color: var(--lime); background: #101510ed; transform: scale(1.08); }
+.playlist-pin.is-pinned { color: var(--lime); }
+.playlist-pin:disabled { opacity: .36; cursor: not-allowed; }
+.all-playlists { margin-top: 19px; color: #e6eadf; }
+.all-playlists summary { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 5px; background: #22271f; cursor: pointer; list-style: none; }
+.all-playlists summary::-webkit-details-marker { display: none; }
+.all-playlists summary > span:first-child { font-size: 11px; font-weight: 750; }
+.all-playlists-count { color: #a6ad9e; font-size: 9px; }
+.all-playlists-chevron { margin-left: auto; color: var(--lime); font-size: 16px; transition: transform .18s ease; }
+.all-playlists[open] .all-playlists-chevron { transform: rotate(180deg); }
+.all-playlists-panel { padding: 14px 0 0; }
+.playlist-search { display: flex; align-items: center; gap: 9px; max-width: 420px; padding: 0 12px; border-radius: 4px; color: #aeb6a4; background: #20261f; }
+.playlist-search > span:not(.sr-only) { font-size: 18px; }
+.playlist-search input { width: 100%; height: 40px; border: 0; outline: 0; color: #eef0e5; background: transparent; font: inherit; font-size: 11px; }
+.playlist-search input::placeholder { color: #8b9485; }
+.playlist-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 10px; max-height: 330px; overflow: auto; margin: 12px 0 0; padding: 2px; list-style: none; }
+.playlist-list li { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px 48px 7px 7px; border-radius: 4px; background: #20261f; }
+.playlist-list-art { width: 38px; height: 38px; flex: 0 0 auto; display: grid; place-items: center; overflow: hidden; border-radius: 3px; color: #1e261c; background: #d9f467; font-family: var(--serif); font-size: 22px; }
+.playlist-list-art img { width: 100%; height: 100%; object-fit: cover; }
+.playlist-list-copy { display: grid; min-width: 0; gap: 4px; }
+.playlist-list-copy strong, .playlist-list-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.playlist-list-copy strong { color: #e7ebdf; font-size: 10px; font-weight: 700; }
+.playlist-list-copy small { color: #a6ad9e; font-size: 8px; }
+.playlist-list .playlist-pin { top: 50%; right: 8px; width: 28px; height: 28px; transform: translateY(-50%); color: #bac2b1; background: transparent; }
+.playlist-list .playlist-pin:hover:not(:disabled) { color: var(--lime); background: #30382c; transform: translateY(-50%) scale(1.08); }
+.playlist-list .playlist-pin.is-pinned { color: var(--lime); }
+.playlist-no-results, .playlist-search-note { color: #a6ad9e; font-size: 10px; }
+.playlist-load-more { margin-top: 12px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+
+@media (max-width: 640px) {
+  .playlist-list { grid-template-columns: 1fr; max-height: 290px; }
+  .quick-picks-heading { align-items: flex-start; }
+}

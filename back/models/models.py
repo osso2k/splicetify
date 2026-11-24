@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import DateTime, ForeignKey, Table, Column, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Table, Column, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 from config.database import Base
 
@@ -56,3 +56,17 @@ class SpotifyOAuthState(Base):
     state = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("players.id"), nullable=False)
     expires_at = Column(DateTime, nullable=False)
+
+
+class PinnedSpotifyPlaylist(Base):
+    __tablename__ = "pinned_spotify_playlists"
+    __table_args__ = (UniqueConstraint("user_id", "playlist_id"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, ForeignKey("players.id"), nullable=False, index=True)
+    playlist_id = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    image_url = Column(String, nullable=True)
+    track_count = Column(Integer, nullable=False, default=0)
+    owner_name = Column(String, nullable=True)
+    position = Column(Integer, nullable=False)

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react"
+import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import type { Models } from "appwrite"
 import type { Playlist } from "../App"
 
@@ -7,15 +7,21 @@ const ListeningScene = lazy(() => import("../components/ListeningScene"))
 type HomepageProps = {
   user: Models.User<Models.Preferences> | null
   playlists: Playlist[]
+  pinnedPlaylists: Playlist[]
   spotifyConnected: boolean
   playlistLoading: boolean
+  playlistRefreshing: boolean
+  loadingMorePlaylists: boolean
+  hasMorePlaylists: boolean
+  playlistTotal: number
   connecting: boolean
   onSignIn: () => void
   onConnectSpotify: () => void
   onRefreshPlaylists: () => void
+  onLoadMorePlaylists: () => void
+  onTogglePinnedPlaylist: (playlist: Playlist) => void
   error: string
 }
-
 const ArrowIcon = () => <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10h10m-4-4 4 4-4 4" /></svg>
 
 function PlaylistArtwork({ playlist, index }: { playlist: Playlist; index: number }) {
@@ -39,14 +45,46 @@ function ListeningSceneFallback() {
 const Homepage = ({
   user,
   playlists,
+  pinnedPlaylists,
   spotifyConnected,
   playlistLoading,
+  playlistRefreshing,
+  loadingMorePlaylists,
+  hasMorePlaylists,
+  playlistTotal,
   connecting,
   onSignIn,
   onConnectSpotify,
   onRefreshPlaylists,
+  onLoadMorePlaylists,
+  onTogglePinnedPlaylist,
   error,
 }: HomepageProps) => {
+  const [date, setDate] = useState(() => new Date())
+  const [playlistSearch, setPlaylistSearch] = useState("")
+  const pinnedIds = useMemo(() => new Set(pinnedPlaylists.map((playlist) => playlist.id)), [pinnedPlaylists])
+  const filteredPlaylists = useMemo(() => {
+    const query = playlistSearch.trim().toLocaleLowerCase()
+    if (!query) return playlists
+    return playlists.filter((playlist) =>
+      `${playlist.name} ${playlist.owner?.display_name ?? ""}`.toLocaleLowerCase().includes(query),
+    )
+  }, [playlists, playlistSearch])
+
+  useEffect(() => {
+    let intervalId: number | undefined
+    const delayToNextMinute = 60_000 - (Date.now() % 60_000)
+    const timeoutId = window.setTimeout(() => {
+      setDate(new Date())
+      intervalId = window.setInterval(() => setDate(new Date()), 60_000)
+    }, delayToNextMinute)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      if (intervalId !== undefined) window.clearInterval(intervalId)
+    }
+  }, [])
+
   useEffect(() => {
     const targets = document.querySelectorAll<HTMLElement>("[data-reveal]")
     if (!("IntersectionObserver" in window)) {
@@ -67,7 +105,7 @@ const Homepage = ({
       if (!target.classList.contains("is-visible")) observer.observe(target)
     })
     return () => observer.disconnect()
-  }, [playlists.length, spotifyConnected])
+  }, [playlists.length, pinnedPlaylists.length, spotifyConnected])
 
   return (
     <>
@@ -111,7 +149,7 @@ const Homepage = ({
           <Suspense fallback={<ListeningSceneFallback />}><ListeningScene /></Suspense>
           <div className="scene-kicker" aria-hidden="true"><span>SP / 001</span><span className="scene-kicker-dot" /></div>
           <div className="scene-title" aria-hidden="true">LISTEN<br /><em>CLOSE.</em></div>
-          <div className="scene-soundline" aria-hidden="true"><span>THE MOMENT BEFORE THE GUESS</span><span className="scene-bars"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></span><span>00:03</span></div>
+          <div className="scene-soundline" aria-hidden="true"><span>THE MOMENT BEFORE THE GUESS</span><span className="scene-bars"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></span><span className="text-xl">{String(date.getHours()).padStart(2, "0")}:{String(date.getMinutes()).padStart(2, "0")}</span></div>
         </div>
       </section>
 
@@ -119,7 +157,7 @@ const Homepage = ({
         <section className="library-section" id="your-playlists" aria-labelledby="library-heading">
           <div className="section-heading" data-reveal="up">
             <div><span className="eyebrow">YOUR MUSIC, FRONT AND CENTER</span><h2 id="library-heading">Pick your soundtrack.</h2></div>
-            {spotifyConnected && <button className="button button--quiet button--small" onClick={onRefreshPlaylists} disabled={playlistLoading}>{playlistLoading ? "Refreshing…" : "Refresh playlists ↻"}</button>}
+            {spotifyConnected && <button className="button button--quiet button--small" onClick={onRefreshPlaylists} disabled={playlistRefreshing || playlistLoading}>{playlistRefreshing ? "Refreshing…" : "Refresh playlists ↻"}</button>}
           </div>
           {!spotifyConnected ? (
             <div className="connect-panel">
@@ -129,16 +167,46 @@ const Homepage = ({
             </div>
           ) : playlistLoading ? (
             <div className="playlist-loading" role="status"><span className="button-spinner" /> Finding your playlists…</div>
-          ) : playlists.length ? (
-            <div className="playlist-grid">
-              {playlists.slice(0, 4).map((playlist, index) => (
-              <article className="playlist-card" data-reveal="up" key={playlist.id}>
-                  <PlaylistArtwork playlist={playlist} index={index} />
-                  <div className="playlist-info"><h3>{playlist.name}</h3><p>{playlist.tracks?.total ?? "—"} tracks · {playlist.owner?.display_name ?? "Your library"}</p></div>
-                  <button className="playlist-action" disabled aria-label={`Game room selection for ${playlist.name} is coming soon`} title="Playlist selection is coming with game rooms"><ArrowIcon /></button>
-                </article>
-              ))}
-            </div>
+          ) : playlists.length || pinnedPlaylists.length ? (
+            <>
+              <div className="quick-picks-heading">
+                <div><h3>Your quick picks</h3><p>Pin up to four playlists for your next game.</p></div>
+                <span>{pinnedPlaylists.length}/4 PINNED</span>
+              </div>
+              {pinnedPlaylists.length ? (
+                <div className="playlist-grid">
+                  {pinnedPlaylists.map((playlist, index) => (
+                    <article className="playlist-card" data-reveal="up" key={playlist.id}>
+                      <PlaylistArtwork playlist={playlist} index={index} />
+                      <div className="playlist-info"><h3>{playlist.name}</h3><p>{playlist.tracks?.total ?? "—"} tracks · {playlist.owner?.display_name ?? "Your library"}</p></div>
+                      <button className="playlist-pin is-pinned" onClick={() => onTogglePinnedPlaylist(playlist)} aria-label={`Unpin ${playlist.name}`} title="Remove from quick picks">★</button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="quick-picks-empty"><span aria-hidden="true">✳</span><p>Choose playlists from your library below to make them quick picks.</p></div>
+              )}
+
+              <details className="all-playlists">
+                <summary><span>All playlists</span><span className="all-playlists-count">{playlists.length} loaded{playlistTotal > playlists.length ? ` · ${playlistTotal} total` : ""}</span><span className="all-playlists-chevron" aria-hidden="true">⌄</span></summary>
+                <div className="all-playlists-panel">
+                  <label className="playlist-search"><span className="sr-only">Search your playlists</span><span aria-hidden="true">⌕</span><input value={playlistSearch} onChange={(event) => setPlaylistSearch(event.target.value)} placeholder="Search your playlists" type="search" /></label>
+                  {filteredPlaylists.length ? (
+                    <ul className="playlist-list">
+                      {filteredPlaylists.map((playlist) => (
+                        <li key={playlist.id}>
+                          <span className="playlist-list-art">{playlist.images?.[0]?.url ? <img src={playlist.images[0].url} alt="" loading="lazy" /> : "♫"}</span>
+                          <span className="playlist-list-copy"><strong>{playlist.name}</strong><small>{playlist.tracks?.total ?? "—"} tracks · {playlist.owner?.display_name ?? "Your library"}</small></span>
+                          <button className={`playlist-pin ${pinnedIds.has(playlist.id) ? "is-pinned" : ""}`} onClick={() => onTogglePinnedPlaylist(playlist)} disabled={!pinnedIds.has(playlist.id) && pinnedPlaylists.length >= 4} aria-label={pinnedIds.has(playlist.id) ? `Unpin ${playlist.name}` : `Pin ${playlist.name}`} title={pinnedIds.has(playlist.id) ? "Remove from quick picks" : "Add to quick picks"}>{pinnedIds.has(playlist.id) ? "★" : "☆"}</button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="playlist-no-results">{playlistSearch ? "No match in the playlists loaded so far." : "No playlists found."}</p>}
+                  {hasMorePlaylists && <button className="button button--quiet button--small playlist-load-more" onClick={onLoadMorePlaylists} disabled={loadingMorePlaylists}>{loadingMorePlaylists ? "Loading…" : `Load more playlists (${playlists.length} of ${playlistTotal})`}</button>}
+                  {playlistSearch && hasMorePlaylists && <p className="playlist-search-note">Search the loaded playlists. Load more to include the rest.</p>}
+                </div>
+              </details>
+            </>
           ) : (
             <div className="empty-playlists"><span aria-hidden="true">♫</span><div><h3>No playlists found yet</h3><p>Create a playlist in Spotify, then refresh this list.</p></div><button className="button button--quiet button--small" onClick={onRefreshPlaylists}>Try again</button></div>
           )}
